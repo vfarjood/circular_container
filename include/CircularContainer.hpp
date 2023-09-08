@@ -320,12 +320,14 @@ class CircularContainer {
   CircularContainer& operator=(CircularContainer&& other) = default;
   ~CircularContainer() = default;
 
+  // Enable CircularContainer class to be brace initialized:
   explicit CircularContainer(std::initializer_list<value_type> values)
     {
       for(auto& item : values){
         this->insert(this->end(), item);
       }
     }
+
   // Modifiers
   void push_back(const value_type& item) {
     m_buffer[m_tail] = item;
@@ -387,37 +389,6 @@ class CircularContainer {
     }
   }
 
-  void insert(const_iterator pos, const value_type& item) {
-    // inserts item before pos:
-    for (auto it = cend(); it != pos; --it){
-      m_buffer[it.index()] = m_buffer[std::prev(it).index()];
-    }
-    m_buffer[pos.index()] = item;
-    if(!full()) {
-      ++m_tail %= m_capacity;
-      ++m_content_size;
-      if(m_tail == m_head) {
-        ++m_head %= m_capacity;
-        m_content_size = m_capacity-1;
-      }
-    }
-  }
-
-  void insert(const_iterator pos, value_type&& item) {
-    // inserts item before pos:
-    for (auto it = cend(); it != pos; --it){
-      m_buffer[it.index()] = m_buffer[std::prev(it).index()];
-    }
-    m_buffer[pos.index()] = std::move(item);
-    if(!full()) {
-      ++m_tail %= m_capacity;
-      ++m_content_size;
-      if(m_tail == m_head) {
-        ++m_head %= m_capacity;
-        m_content_size = m_capacity-1;
-      }
-    }
-  }
   void clear() {
     m_content_size = 0;
     m_head = 0;
