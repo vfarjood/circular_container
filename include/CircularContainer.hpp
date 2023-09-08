@@ -6,6 +6,9 @@
 #define BANDYERLICODE_ERIZO_SRC_ERIZO_DATA_PACKET_CIRCULARCONTAINER_H_
 
 #include <array>
+#include <type_traits>
+#include <initializer_list>
+
 
 namespace vfc {
 
@@ -297,18 +300,33 @@ template<typename Tp, std::size_t _capacity>
 class CircularContainer {
  public:
 
-//   Standard type definitions
-  using value_type      = Tp;
-  using pointer         = value_type*;
-  using const_pointer   = const value_type*;
-  using reference       = value_type&;
-  using const_reference = const value_type&;
-  using size_type       = std::size_t;
-  using iterator        = circular_container_iterator<CircularContainer<Tp, _capacity>, _capacity, false>;
-  using const_iterator  = circular_container_iterator<CircularContainer<Tp, _capacity>, _capacity, true>;
+  // Standard type definitions used also in STL containers:
+  using value_type              = Tp;
+  using size_type               = std::size_t;
+  using difference_type         = std::ptrdiff_t;
+  using pointer                 = value_type*;
+  using const_pointer           = const value_type*;
+  using reference               = value_type&;
+  using const_reference         = const value_type&;
+  using iterator                = circular_container_iterator<CircularContainer<Tp, _capacity>, _capacity, false>;
+  using const_iterator          = circular_container_iterator<CircularContainer<Tp, _capacity>, _capacity, true>;
   using reverse_iterator        = circular_container_reverse_iterator<CircularContainer<Tp, _capacity>, _capacity, false>;
   using const_reverse_iterator  = circular_container_reverse_iterator<CircularContainer<Tp, _capacity>, _capacity, true>;
 
+  CircularContainer() = default;
+  CircularContainer(const CircularContainer& other) = default;
+  CircularContainer(CircularContainer&& other) = default;
+  CircularContainer& operator=(const CircularContainer& other) = default;
+  CircularContainer& operator=(CircularContainer&& other) = default;
+  ~CircularContainer() = default;
+
+  explicit CircularContainer(std::initializer_list<value_type> values)
+    {
+      for(auto& item : values){
+        this->insert(this->end(), item);
+      }
+    }
+  // Modifiers
   void push_back(const value_type& item) {
     m_buffer[m_tail] = item;
     ++m_tail %= m_capacity;
@@ -408,73 +426,50 @@ class CircularContainer {
   
   
   // Capacity:
-  [[nodiscard]] constexpr std::size_t capacity() const {
+  [[nodiscard]] constexpr size_type capacity() const noexcept{
     return m_capacity-1;
   }
 
-  [[nodiscard]] bool empty() const {
+  [[nodiscard]] constexpr bool empty() const noexcept{
     return !m_content_size;
   }
-  [[nodiscard]] bool full() const {
+  [[nodiscard]] constexpr bool full() const noexcept{
     return m_content_size == m_capacity - 1;
   }
 
-  [[nodiscard]] size_type size() const {
+  [[nodiscard]] constexpr size_type size() const noexcept{
     return m_content_size;
   }
   
 
-  // Iterator:
-  iterator begin() {
-    return iterator(*this, m_head);
-  }
+  // Iterators:
+  iterator begin() {return iterator(*this, m_head);}
 
-  iterator end() {
-    return iterator(*this, m_tail);
-  }
+  iterator end() {return iterator(*this, m_tail);}
 
-  const iterator begin() const {
-    return begin();
-  }
+  const_iterator begin() const {return const_iterator(*this, m_head);}
 
-  const iterator end() const {
-    return end();
-  }
+  const_iterator end() const {return const_iterator(*this, m_tail);}
 
-  const_iterator cbegin() {
-    return const_iterator(*this, m_head);
-  }
+  const_iterator cbegin() {return const_iterator(*this, m_head);}
 
-  const_iterator cend() {
-    return const_iterator(*this, m_tail);
-  }
+  const_iterator cend() {return const_iterator(*this, m_tail);}
 
-
+  
   // reverse iterator
-  reverse_iterator rbegin() {
-    return reverse_iterator(*this, (--end()).index());
-  }
+  reverse_iterator rbegin() {return reverse_iterator(*this, (--end()).index());}
 
-  reverse_iterator rend() {
-    return reverse_iterator(*this, (--begin()).index());
-  }
+  reverse_iterator rend() {return reverse_iterator(*this, (--begin()).index());}
 
-  const_reverse_iterator rbegin() const {
-    return rbegin();
-  }
+  const_reverse_iterator rbegin() const {return const_reverse_iterator(*this, (--end()).index());}
 
-  const_reverse_iterator rend() const {
-    return rend();
-  }
+  const_reverse_iterator rend() const {return onst_reverse_iterator(*this, (--begin()).index());}
 
-  const_reverse_iterator crbegin() {
-    return const_reverse_iterator(*this, (--end()).index());
-  }
+  const_reverse_iterator crbegin() {return const_reverse_iterator(*this, (--end()).index());}
 
-  const_reverse_iterator crend() {
-    return const_reverse_iterator(*this, (--begin()).index());
-  }
+  const_reverse_iterator crend() {return const_reverse_iterator(*this, (--begin()).index());}
 
+  
   // Element access:
   reference front() {
     // Undefined Behavior if container is empty!
@@ -496,6 +491,7 @@ class CircularContainer {
     return *(--end());
   }
 
+
  private:
   friend class circular_container_iterator<CircularContainer<Tp, _capacity>, _capacity, false>;
   friend class circular_container_iterator<CircularContainer<Tp, _capacity>, _capacity, true>;
@@ -509,7 +505,9 @@ class CircularContainer {
   size_type m_tail = 0;
 };
 
-
+// Deduction to enable CircularContainer class to be brace initialized: //
+template<typename T, typename... Us>
+CircularContainer(T first, Us... rest) -> CircularContainer<T, (std::is_same_v<T, Us> + ... + 1)>;
 
 }
 #endif //BANDYERLICODE_ERIZO_SRC_ERIZO_DATA_PACKET_CIRCULARCONTAINER_H_
