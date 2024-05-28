@@ -1,6 +1,0 @@
-/home/vahid.farjood/dev/git/circular_container/build/CMakeFiles/edit_cache.dir
-/home/vahid.farjood/dev/git/circular_container/build/CMakeFiles/rebuild_cache.dir
-/home/vahid.farjood/dev/git/circular_container/build/CMakeFiles/list_install_components.dir
-/home/vahid.farjood/dev/git/circular_container/build/CMakeFiles/install.dir
-/home/vahid.farjood/dev/git/circular_container/build/CMakeFiles/install/local.dir
-/home/vahid.farjood/dev/git/circular_container/build/CMakeFiles/install/strip.dir
