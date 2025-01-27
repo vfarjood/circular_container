@@ -1,8 +1,8 @@
 # CircularContainer
 
-A header-only, ring-buffer-like C++ container that supports fixed-capacity push/pop
-and arbitrary iterator-based insertion. When the container is full, a new push overwrites
-the oldest element, maintaining a constant maximum size.
+A header-only, ring-buffer-like C++ container that supports fixed-capacity push/pop operations and 
+arbitrary iterator-based insertion. When the container is full, it efficiently overwrites the oldest element, 
+maintaining a constant maximum size while offering flexibility and iterator support.
 
 ## Table of Contents
 1. [Features](#features)
@@ -10,132 +10,139 @@ the oldest element, maintaining a constant maximum size.
 3. [How It Works](#how-it-works)
 4. [Public API](#public-api)
 5. [Usage Example](#usage-example)
-6. [Building](#building)
-7. [Running the Tests](#running-the-tests)
-8. [Contributing](#contributing)
-9. [License](#license)
+6. [Running the Tests](#running-the-tests)
+7. [Contributing](#contributing)
+8. [License](#license)
 
-## 1. Features
-- **Fixed Capacity**: Holds up to `_capacity` elements.
-- **Overwrite on Full**: If `push_back` is called when full, the oldest element is removed.
-- **Insertion**: Insert elements at arbitrary iterator positions.
-- **Iteration**: Provides `begin()`, `end()`, `rbegin()`, `rend()`, plus `const` versions.
-- **Brace Initialization**: Thanks to a deduction guide, you can write
-  `CircularContainer c{1,2,3}` in C++17 or later.
-- **Header-Only**: Just include the `.hpp` file—no separate linking needed.
+## Features
+- **Fixed Capacity**: Holds up to `_capacity` elements while maintaining O(1) push/pop efficiency.
+- **Automatic Overwrite**: If `push_back` is called on a full container, the oldest element is seamlessly removed to make space.
+- **Custom Insertions**: Supports inserting elements at arbitrary positions using iterators.
+- **Rich Iteration Support**:
+    - Forward (`begin()`, `end()`) and reverse (`rbegin()`, `rend()`) iterators.
+    - Constant versions (`cbegin()`, `crend()`).
+- **Brace Initialization**: Allows direct initialization with C++17 deduction guides:
+- **Header-Only Implementation**: Easily include the `.hpp` file with no additional linking required.
+- **STL Compatibility**: Works seamlessly with STL algorithms like `std::sort`, `std::find`, and `std::copy`.
 
-## 2. Repository Structure
+---
+
+## Repository Structure
 ```
-your-repo/
-├── CMakeLists.txt
+circular_container/
 ├── include/
-│   └── CircularContainer.hpp
-└── test.cpp
+│   └── CircularContainer.hpp    # Main header-only library
+├── test.cpp                     # Test suite for validation
+└── CMakeLists.txt               # CMake file for building
 ```
 
-- **include/CircularContainer.hpp**: This single-header library contains the entire CircularContainer implementation.
-- **test.cpp**: Example usage and tests (assert-based) demonstrating ring-buffer functionality.
-- **CMakeLists.txt**: A basic CMake configuration, allowing you to build the test or include CircularContainer as a third-party library.
+- **`include/CircularContainer.hpp`**: Core implementation of the container.
+- **`test.cpp`**: Demonstrates various use cases and validates functionality.
+- **`CMakeLists.txt`**: Build configuration for integrating and testing the project.
 
-## 3. How It Works
-The container is implemented as a ring buffer with these key points:
+---
 
-1. **Internal Buffer**: `std::array<value_type, _capacity + 1>`
-2. **Head (m_head) and Tail (m_tail) Indices**:
-   - `m_head` marks the front element.
-   - `m_tail` marks the slot after the last valid element.
-3. **Size Tracking (`m_content_size`)**:
-   - If `size() < capacity()`, `push_back()` just appends.
-   - If `size() == capacity()`, `push_back()` overwrites the oldest item (increments `m_head`).
+## How It Works
+
+`CircularContainer` is implemented as a **ring buffer**, a data structure that uses a fixed-size array as a circular queue. Key design elements:
+
+1. **Internal Buffer**:
+    - An `std::array` of size `_capacity + 1` is used.
+2. **Head and Tail Pointers**:
+    - `m_head`: Points to the front element.
+    - `m_tail`: Points to the next free slot for insertion.
+3. **Behavior on Full Capacity**:
+    - If the container is full, the `push_back` operation advances `m_head`, discarding the oldest element.
 4. **Iteration**:
-   - `begin()` / `end()` produce forward iterators.
-   - `rbegin()` / `rend()` produce reverse iterators.
-5. **Insertion**:
-   - `insert(pos, value)` shifts elements `[end()..pos)` up by 1 and places the new item at `pos`.
-   - If the container is full, the oldest item is removed when you insert or push more elements.
+    - Iterators loop over the valid elements between `m_head` and `m_tail`, wrapping around the circular array.
 
-**Important**:
-- `front()` / `back()` have undefined behavior if `empty()`.
-- Decrementing `--end()` on an empty container is also undefined.
+---
 
-## 4. Public API
-
-### A) Constructors
-- `CircularContainer()`: Default constructor.
-- Copy / Move constructors.
-- Brace initialization with a deduction guide:
+## Public API
+### Constructors
+- **Default Constructor**:
   ```cpp
-  vfc::CircularContainer<int,5> c{1,2,3,4,5};
+  CircularContainer<T, capacity>();
+  ```
+- **Brace Initialization** (C++17):
+  ```cpp
+  CircularContainer<int, 5> c{1, 2, 3, 4, 5};
   ```
 
-### B) Capacity & State
-- `size()`: Returns the number of elements.
-- `capacity()`: Returns `_capacity`.
-- `empty()`: Returns `true` if `size == 0`.
-- `full()`: Returns `true` if `size == capacity()`.
+---
 
-### C) Modifiers
-- `push_back(const T&)` / `emplace_back(T&&)`: Appends an element, overwriting if full.
-- `pop_front()`: Removes the front; if empty, calls `clear()`.
-- `insert(iterator pos, const T&)` / `insert(iterator pos, T&&)`: Inserts an element before `pos`, shifting the ring. Overwrites oldest if full.
-- `clear()`: Resets container to empty.
+### Capacity & State
+| **Function** | **Description** |
+|--------------|-----------------|
+| `size()`     | Returns the number of elements in the container. |
+| `capacity()` | Returns the maximum capacity of the container. |
+| `empty()`    | Returns `true` if the container is empty. |
+| `full()`     | Returns `true` if the container is full. |
 
-### D) Iterators
-- `begin()`, `end()`, `cbegin()`, `cend()`: Standard forward iterators.
-- `rbegin()`, `rend()`, `crbegin()`, `crend()`: Reverse iterators.
+---
 
-### E) Element Access
-- `front()`, `back()`: Reference to the first / last element (undefined if empty).
+### Modifiers
+| **Function**          | **Description** |
+|-----------------------|-----------------|
+| `push_back(const T&)` | Appends an element, overwriting the oldest if full. |
+| `emplace_back(T&&)`   | Appends an element using move semantics. |
+| `pop_front()`         | Removes the oldest element. |
+| `insert(iterator, const T&)` | Inserts an element at a specific position. |
+| `clear()`             | Resets all elements. |
 
-## 5. Usage Example
+---
 
-### Example (`main.cpp`):
+### Iterators
+| **Iterator Type** | **Description** |
+|-------------------|-----------------|
+| `begin()`, `end()` | Forward iterators for looping through elements. |
+| `rbegin()`, `rend()` | Reverse iterators. |
+| `cbegin()`, `cend()` | Constant forward iterators. |
+| `crbegin()`, `crend()` | Constant reverse iterators. |
+
+---
+
+### Element Access
+- **`front()`**: Returns the first element. Throws `std::out_of_range` if empty.
+- **`back()`**: Returns the last element. Throws `std::out_of_range` if empty.
+
+---
+## Usage Example
+
+### Example Code (`main.cpp`)
 ```cpp
 #include "CircularContainer.hpp"
 #include <iostream>
 
 int main() {
-    // Create a CircularContainer of capacity 5 for ints
-    vfc::CircularContainer<int,5> c;
+    vfc::CircularContainer<int, 5> container;
 
-    // Push elements
-    c.push_back(10);
-    c.push_back(20);
-    c.push_back(30);
+    // Add elements
+    container.push_back(10);
+    container.push_back(20);
+    container.push_back(30);
 
-    std::cout << "Size: " << c.size() << "\n";    // 3
-    std::cout << "Front: " << c.front() << "\n"; // 10
-    std::cout << "Back: " << c.back() << "\n";   // 30
+    std::cout << "Size: " << container.size() << "\n"; // 3
+    std::cout << "Front: " << container.front() << "\n"; // 10
+    std::cout << "Back: " << container.back() << "\n"; // 30
 
-    // Iterate
-    for (auto &val : c) {
-        std::cout << val << " ";  // 10 20 30
+    // Add more elements
+    container.push_back(40);
+    container.push_back(50);
+    container.push_back(60); // Overwrites 10
+
+    std::cout << "Front after overwrite: " << container.front() << "\n"; // 20
+
+    // Iterate through elements
+    for (const auto& elem : container) {
+        std::cout << elem << " "; // Outputs: 20 30 40 50 60
     }
-    std::cout << "\n";
-
-    // Fill up
-    c.push_back(40);
-    c.push_back(50);
-    // Now it's full (size=5). Another push overwrites oldest
-    c.push_back(60); // overwrites '10'
-
-    std::cout << "New front: " << c.front() << "\n"; // 20
-    std::cout << "New back: " << c.back() << "\n";   // 60
 
     return 0;
 }
 ```
-
-### Compile & Run:
-```bash
-g++ -std=c++17 main.cpp -o example && ./example
-```
-
-## 6. Building
-
-There is a provided `CMakeLists.txt`. You can use it as a sub Cmake project.
-
-## 7. Running the Tests
+---
+## Running the Tests
 
 After building with the above steps:
 ```bash
@@ -149,11 +156,22 @@ All tests passed!
 
 Any failing assertion will abort the program with an error message.
 
-## 8. Contributing
+---
 
-- **Issues**: Please create GitHub issues describing bugs, steps to reproduce, or enhancement requests.
-- **Pull Requests**: We welcome additions, such as more robust error handling, improved iteration logic, or specialized ring-buffer operations.
+## Contributing
 
-## 9. License
+We welcome contributions! Here's how to get involved:
+1. Fork the repository and create a new branch.
+2. Add new features or bug fixes.
+3. Submit a pull request with a clear description of the changes.
 
-This project is distributed under the MIT License. See `LICENSE` for details.
+---
+
+## License
+
+This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
+
+---
+
+## Acknowledgments
+Thank you for using CircularContainer! If you have any feedback or feature requests, feel free to open an issue.
