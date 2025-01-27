@@ -82,13 +82,13 @@ circular_container/
 ---
 
 ### Modifiers
-| **Function**          | **Description** |
-|-----------------------|-----------------|
-| `push_back(const T&)` | Appends an element, overwriting the oldest if full. |
-| `emplace_back(T&&)`   | Appends an element using move semantics. |
-| `pop_front()`         | Removes the oldest element. |
-| `insert(iterator, const T&)` | Inserts an element at a specific position. |
-| `clear()`             | Resets all elements. |
+| **Function**          | **Description**                                             |
+|-----------------------|-------------------------------------------------------------|
+| `push_back(const T&)` | Appends an element, overwriting the oldest if full.         |
+| `emplace_back(T&&)`   | Appends an element using move semantics.                    |
+| `pop_front()`         | Removes the oldest element.                                 |
+| `insert(iterator, const T&)` | Inserts an element at a specific position and shift others. |
+| `clear()`             | Resets all elements.                                        |
 
 ---
 
@@ -109,7 +109,7 @@ circular_container/
 ---
 ## Usage Example
 
-### Example Code (`main.cpp`)
+### Example Code (`test.cpp`)
 ```cpp
 #include "CircularContainer.hpp"
 #include <iostream>
@@ -144,7 +144,6 @@ int main() {
 ---
 ## Running the Tests
 
-After building with the above steps:
 ```bash
 g++ -std=c++17 test.cpp -o test && ./test
 ```
