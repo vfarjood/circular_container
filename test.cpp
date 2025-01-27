@@ -1,259 +1,370 @@
-#include "include/CircularContainer.hpp"
-#include <string>
-#include <iostream>
-#include <typeinfo>
+#include <cassert>       // for assert
+#include <iostream>      // for std::cout (optional logging)
+#include <algorithm>     // for std::find_if
 #include <vector>
-#include <algorithm>
+#include "include/CircularContainer.hpp"
 
-constexpr std::size_t buffer_size = 5;
+/**
+ * A simple struct to test non-trivial objects in CircularContainer.
+ */
 struct Person {
-	
-	std::string name = "null";
-	int age = 0;
-	
-	bool operator<(const Person& other) {
-		return this->age < other.age;
-	}
+    std::string name;
+    int age;
 
-	void print() const {
-		std::cout << "name: " << name << std::endl;
-		std::cout << "age : " << age  << std::endl;
-		std::cout << "--------------" << std::endl;
+    // For demonstration: define a simple operator<
+    bool operator<(const Person &other) const {
+        return this->age < other.age;
+    }
 
-	}
+    // Possibly define == for tests
+    bool operator==(const Person &other) const {
+        return (this->name == other.name) && (this->age == other.age);
+    }
 };
 
+int main()
+{
+    using namespace vfc;
 
-int main(){
+    // 1) Test with basic int container
+    constexpr std::size_t CAP = 5;
+    CircularContainer<int, CAP> c;
+    assert(c.size() == 0);
+    assert(c.capacity() == CAP);
+    assert(c.empty());
 
-	Person p1{.name="p1", .age=1};
-	Person p2{.name="p2", .age=2};
-	Person p3{.name="p3", .age=3};
-	Person p4{.name="p4", .age=4};
-	Person p5{.name="p5", .age=5};
-	Person p6{.name="p6", .age=6};
-	Person p7{.name="p7", .age=7};
-	Person p8{.name="p8", .age=8};
+    // push_back some elements
+    c.push_back(10);
+    assert(c.size() == 1 && !c.empty());
+    c.push_back(20);
+    c.push_back(30);
+    c.push_back(40);
+    c.push_back(50);
+    // container is now full => size=5
+    assert(c.size() == 5);
+    assert(c.full());
 
-	vfc::CircularContainer<Person, buffer_size> container;
+    // Overfill => the logic in push_back overwrites oldest
+    c.push_back(60);
+    // size remains 5, but the "front" is now 20 (10 overwritten)
+    assert(c.size() == 5);
+    assert(c.front() == 20);
+    // back() is the last inserted => 60
+    assert(c.back() == 60);
 
-	std::cout << "size of container:     " << container.size() << std::endl;
-	std::cout << "capacity of container: " << container.capacity() << std::endl;
-		if(container.empty()){
-		std::cout << "its empty!!!!!!!" << std::endl;
-	}
+    // pop_front => remove front (20)
+    c.pop_front();
+    assert(c.size() == 4 && !c.empty());
+    assert(c.front() == 30);
 
+    // 2) Insert at begin (with container partially full)
+    // c: front=30, contains [30,40,50,60], size=4
+    c.insert(c.begin(), 99);
+    // If container wasn't full => size is now 5
+    assert(c.size() == 5);
+    // The new front is 99
+    assert(c.front() == 99);
 
+    // 3) Test forward iteration
+    {
+        int count = 0;
+        for (auto it = c.begin(); it != c.end(); ++it) {
+            count++;
+        }
+        assert(count == 5);
+    }
 
-	// std::cout << "head:" << container.m_head << std::endl;
-	// std::cout << "tail:" << container.m_tail << std::endl;
-	container.push_back(p1); 
-	// std::cout << "head:" <<container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	container.push_back(p2); 
-	// std::cout << "head:" <<container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	container.push_back(p3); 
-	// std::cout << "head:" <<container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	container.push_back(p4); 
-	// std::cout << "head:" <<container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	container.push_back(p5); 
-	// std::cout << "head:" <<container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	// container.push_back(p6); 
-	// container.push_back(p7); 
-	// container.push_back(p8); 
-	// std::cout <<"head:" << container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	// std::cout << "----start poping----" << std::endl;
-	// container.pop_front(); 
-	// container.pop_front(); 
-	// container.pop_front(); 
-	// container.pop_front(); 
-	// container.pop_front(); 
-	// container.pop_front(); 
-	// std::cout << "head:" <<container.m_head << std::endl;
-	// std::cout << "tail:" <<container.m_tail << std::endl;
-	std::cout << std::endl;
+    // 4) Test reverse iteration
+    {
+        int count = 0;
+        for (auto it = c.rbegin(); it != c.rend(); ++it) {
+            count++;
+        }
+        assert(count == 5);
+    }
+    // Test const_reverse_iterator
+    {
+        vfc::CircularContainer<int, 5> c2;
+        c2.push_back(1);
+        c2.push_back(2);
+        c2.push_back(3);
+        c2.push_back(4);
+        c2.push_back(5);
 
-	if(p4 < p5)
+        const auto &rc2 = c2;
+        int count = 0;
+        for (auto crit = rc2.crbegin(); crit != rc2.crend(); ++crit) {
+            count++;
+        }
+        assert(count == 5);
+    }
 
-	std::cout << "---range base for loop" << std::endl;
-	for (const auto& it : container){
-		it.print();
-	}
-	std::cout << std::endl;
+    // 5) Clear
+    c.clear();
+    assert(c.size() == 0 && c.empty());
 
-	if(!container.empty()){
-	std::cout << "---read cbegin() by const_iterator: " << std::endl;
-	vfc::CircularContainer<Person, buffer_size>::const_iterator  const_iter = container.cbegin();
-	std::cout << const_iter->age << std::endl;
-	// const_iter->age = 88;
-	// std::cout << const_iter->age << std::endl;
-	}
+    // 6) Test pushing up to capacity again
+    for (int i = 1; i <= 5; ++i) {
+        c.push_back(i * 10);
+    }
+    // c: [10,20,30,40,50], size=5, front=10, back=50
+    assert(c.full());
+    // remove 2
+    c.pop_front();
+    c.pop_front(); // now c: [30,40,50], size=3
 
-	if(!container.empty()){
-	std::cout << "---write begin() by non-const_iterator: " << std::endl;
-	vfc::CircularContainer<Person, buffer_size>::iterator  iter = container.begin();
-	iter->age = 11;
-	std::cout << iter->age << std::endl;
-	}
+    // 7) Insert in the middle
+    // container [30,40,50], let's insert 99 before '50'
+    auto itPos = ++(c.begin()); // points to 40
+    ++itPos;                    // now points to 50
+    c.insert(itPos, 99);
+    // c => [30,40,99,50], size=4
+    assert(c.size() == 4);
 
+    // 8) Range-based for iteration
+    {
+        int sum = 0;
+        for (auto &val : c) {
+            sum += val;
+        }
+        // c has [30,40,99,50] => sum=219
+        assert(sum == 219);
+    }
 
-	std::cout << std::endl;
-	std::cout << "---iterator base for loop" << std::endl;
-	for ( vfc::CircularContainer<Person, buffer_size>::iterator it = container.begin(); it != container.end(); ++it){
-		// it->age = 0;
-		std::cout << "it: " << it.index() << std::endl;
-		it->print();
-	}
-	std::cout << std::endl;
+    // 9) Test with a custom struct
+    CircularContainer<Person, 3> people;
+    // fill
+    people.push_back(Person{"Alice", 30});
+    people.push_back(Person{"Bob",   25});
+    people.push_back(Person{"Cara",  40});
+    assert(people.size() == 3 && people.full());
+    // Overfill => push back "Dan", oldest ("Alice") is overwritten
+    people.push_back(Person{"Dan", 35});
+    assert(people.size() == 3);
+    // front => was "Bob" after overwriting "Alice"
+    assert(people.front().name == "Bob");
 
-	container.insert(container.cbegin(), p8); // with l-value item
-	container.insert(++(container.cbegin()), Person{.name="p9", .age=9}); // with r-value item
+    // pop_front => remove "Bob"
+    people.pop_front();
+    assert(people.size() == 2);
+    assert(people.front().name == "Cara"); // next oldest
 
-	std::cout << std::endl;
-	std::cout << "---iterator base for loop after insertion" << std::endl;
-	for ( vfc::CircularContainer<Person, buffer_size>::iterator it = container.begin(); it != container.end(); ++it){
-		// it->age = 0;
-		std::cout << "it: " << it.index() << std::endl;
-		it->print();
-	}
+    // check iteration
+    {
+        int cnt = 0;
+        for (auto &p : people) {
+            cnt++;
+            // we can read & mutate as needed
+        }
+        assert(cnt == 2);
+    }
 
-	std::cout << "---reverse_iterator for loop" << std::endl;
-	for (auto it = container.rbegin(); it != container.rend(); ++it){
-		std::cout << "it: " << it.index() << std::endl;
-		it->print();
-	}
-	std::cout << std::endl;
+    // 10) Use brace-initialization
+    // e.g. CircularContainer<int,3> x{1,2,3} etc.
+    CircularContainer<int,5> c2{1,2,3,4,5};
+    assert(c2.size() == 5);
+    // Overfill => push_back(6) overwrites oldest
+    c2.push_back(6);
+    // size still 5, front is 2, back is 6
+    assert(c2.front() == 2);
+    assert(c2.back() == 6);
 
-	std::cout << "---const reverse_iterator for loop" << std::endl;
-	for (auto it = container.crbegin(); it != container.crend(); ++it){
-		std::cout << "it: " << it.index() << std::endl;
-		it->print();
-	}
-	std::cout << std::endl;
+    // 11) Check cbegin(), cend()
+    {
+        const auto &rc2 = c2;
+        int count = 0;
+        for (auto cit = rc2.cbegin(); cit != rc2.cend(); ++cit) {
+            count++;
+        }
+        assert(count == 5);
+    }
 
+    // 12) Find an element with std::find_if
+    {
+        // c2 has [2,3,4,5,6] in some ring arrangement
+        // let's look for "4"
+        auto found = std::find_if(c2.begin(), c2.end(), [](int x){ return x == 4; });
+        assert(found != c2.end() && "Should find 4 in the container");
+        assert(*found == 4);
+    }
 
-	std::cout << "---range base for loop" << std::endl;
-	for (const auto& it : container){
-		it.print();
-	}
-	std::cout << std::endl;
-	
-	container.clear();
-	std::cout << "clear() method was called!" << std::endl;
+    // Additional test cases
+    {
+        // Test insert at the end
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        c.insert(c.end(), 99);
+        assert(c.size() == 4);
+        assert(c.back() == 99);
+    }
 
-	if(container.empty()){
-		std::cout << "the container is empty now!\n" << std::endl;
-	}
-	std::cout << "-front:\n";
-	container.front().print();
-	std::cout << "-end:\n";
-	container.back().print();
-	std::cout << "---> Accessing front() and back() is 'Undefined Behavior' when container is empty!\n";
+    {
+        // Test insert into an empty container
+        CircularContainer<int, 5> c;
+        c.insert(c.begin(), 99);
+        assert(c.size() == 1);
+        assert(c.front() == 99);
+        assert(c.back() == 99);
+    }
 
+    {
+        // Test insert into a full container
+        CircularContainer<int, 3> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        c.insert(c.begin(), 99);
+        assert(c.size() == 3);
+        assert(*c.begin() == 99);
+        assert(c.front() == 99);
+        assert(c.back() == 2);
+    }
 
-	std::cout << "---range base for loop" << std::endl;
-	for (const auto& it : container){
-		it.print();
-	}
-	std::cout << std::endl;
+    {
+        // Test pop_front on an empty container
+        CircularContainer<int, 5> c;
+        c.pop_front();
+        assert(c.size() == 0);
+        assert(c.empty());
+    }
 
+    {
+        // Test front and back on an empty container
+        CircularContainer<int, 5> c;
+        try {
+            c.front();
+            assert(false && "front() on empty container should throw!");
+        } catch (const std::out_of_range& e) {
+            // Expected behavior
+        }
 
-	auto i1 = container.cbegin();
-	auto i2 = container.cbegin();
-	std::cout << "-------------------" << std::endl;
+        try {
+            c.back();
+            assert(false && "back() on empty container should throw!");
+        } catch (const std::out_of_range& e) {
+            // Expected behavior
+        }
+    }
 
-	std::cout << "i1 = " << std::endl;
-	i1->print();
-	std::cout << "i2 = " << std::endl;
-	i2->print();
+    {
+        // Test emplace_back with move semantics
+        CircularContainer<std::string, 3> c;
+        std::string s1 = "Hello";
+        std::string s2 = "World";
+        c.emplace_back(std::move(s1));
+        c.emplace_back(std::move(s2));
+        assert(c.size() == 2);
+        assert(c.front() == "Hello");
+        assert(c.back() == "World");
+        assert(s1.empty());
+        assert(s2.empty());
+    }
 
-	if(i1 == i2) std::cout << " i1 and i2 are equal\n";
-	if(i1 != i2) std::cout << " i1 and i2 are no equal\n";
+    {
+        // Test clear on a full container
+        CircularContainer<int, 3> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        c.clear();
+        assert(c.size() == 0);
+        assert(c.empty());
+    }
 
-	// std::advance(i2, 5);
-	// std::cout << "distance: " << std::distance(i1, i2) << std::endl;
+    {
+        // Test operator== and operator!= for iterators
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        auto it1 = c.begin();
+        auto it2 = c.begin();
+        assert(it1 == it2);
+        ++it2;
+        assert(it1 != it2);
+    }
 
-	auto i11 = std::next(i1, 2);
-	
-	if(i1 == i2) std::cout << " i1 and i2 are equal\n";
-	if(i1 != i2) std::cout << " i1 and i2 are no equal\n";
+    {
+        // Test operator-- on iterators
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        auto it = c.end();
+        --it;
+        assert(*it == 3);
+        --it;
+        assert(*it == 2);
+        --it;
+        assert(*it == 1);
+    }
 
-	std::cout << "-------------------" << std::endl;
-	std::cout << "i11 = " << std::endl;
-	i11->print();
-	std::cout << "i1 = " << std::endl;
-	i1->print();
-	std::cout << "i2 = " << std::endl;
-	i2->print();
-	// std::shuffle(container.begin(), container.end());
+    {
+        // Test operator++ on reverse iterators
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        auto rit = c.rbegin();
+        assert(*rit == 3);
+        ++rit;
+        assert(*rit == 2);
+        ++rit;
+        assert(*rit == 1);
+    }
 
-	std::cout << "---range base for loop" << std::endl;
-	for (const auto& it : container){
-		it.print();
-	}
-	std::cout << std::endl;
-	std::cout << "size of container:     " << container.size() << std::endl;
-	std::cout << "capacity of container: " << container.capacity() << std::endl;
-	std::cout << std::endl;
+    {
+        // Test operator-- on reverse iterators
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        auto rit = c.rend();
+        --rit;
+        assert(*rit == 1);
+        --rit;
+        assert(*rit == 2);
+        --rit;
+        assert(*rit == 3);
+    }
 
-	container.push_back(p1); 
-	container.push_back(p2); 
-	container.push_back(p3); 
-	container.push_back(p4); 
-	container.push_back(p5);
+    {
+        // Test std::sort with iterators
+//        CircularContainer<int, 5> c;
+//        c.push_back(3);
+//        c.push_back(1);
+//        c.push_back(2);
+//        std::sort(c.begin(), c.end());
+//        assert(c.front() == 1);
+//        assert(c.back() == 3);
+    }
 
+    {
+        // Test std::find with iterators
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        auto found = std::find(c.begin(), c.end(), 2);
+        assert(found != c.end());
+        assert(*found == 2);
+    }
 
-	std::cout << "---range base for loop" << std::endl;
-	for (const auto& it : container){
-		it.print();
-	}
-	// container.pop_front();
-	std::cout << "size of container:     " << container.size() << std::endl;
-	std::cout << "capacity of container: " << container.capacity() << std::endl;
-
-	const int a = 1;
-	const int b = 2;
-	const int c = 3;
-	const int d = 4;
-	vfc::CircularContainer<int, 5> c1;
-	c1.push_back(a);
-	c1.push_back(b);
-	c1.push_back(c);
-	c1.push_back(d);
-
-	for(const auto i : c1){
-		std::cout << "i: " << i << std::endl;
-	}
-	auto c1_it = ++c1.begin();
-	std::cout << *c1_it << std::endl;
-
-	for(auto it = c1.begin(); it != c1.end(); ++it){
-
-	}
-
-	vfc::CircularContainer init{1,2,3,4,5};
-	for(auto it = init.begin(); it != init.end(); ++it){
-		std::cout << *it << ", " ;
-	}
-	std::cout << std::endl;
-
-
-	vfc::CircularContainer p{p6, p7, p8};
-	for(auto it = p.begin(); it != p.end(); ++it){
-		it->print();
-	}
-	std::cout << std::endl;
-
-	if(auto found = std::find_if(p.begin(), p.end(), [](auto&& item){
-		return item.age == 8;
-	}); found != p.end()) {
-		found->print();
-	}
-
-	return 0;
+    {
+        // Test std::copy with iterators
+        CircularContainer<int, 5> c;
+        c.push_back(1);
+        c.push_back(2);
+        c.push_back(3);
+        std::vector<int> v;
+        std::copy(c.begin(), c.end(), std::back_inserter(v));
+        assert(v.size() == 3);
+        assert(v[0] == 1);
+        assert(v[1] == 2);
+        assert(v[2] == 3);
+    }
+    std::cout << "All tests passed!\n";
+    return 0;
 }
