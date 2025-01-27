@@ -1,4 +1,4 @@
-# CircularContainer Documentation
+# CircularContainer
 
 A header-only, ring-buffer-like C++ container that supports fixed-capacity push/pop
 and arbitrary iterator-based insertion. When the container is full, a new push overwrites
@@ -133,24 +133,13 @@ g++ -std=c++17 main.cpp -o example && ./example
 
 ## 6. Building
 
-There is a provided `CMakeLists.txt`. Follow these steps:
-
-1. Clone or download this repository.
-2. From the project root:
-   ```bash
-   mkdir build
-   cd build
-   cmake ..
-   make
-   ```
-
-3. This builds an executable (from `test.cpp`) that runs basic asserts to confirm correctness.
+There is a provided `CMakeLists.txt`. You can use it as a sub Cmake project.
 
 ## 7. Running the Tests
 
 After building with the above steps:
 ```bash
-./test
+g++ -std=c++17 test.cpp -o test && ./test
 ```
 
 If everything is correct, it prints:
